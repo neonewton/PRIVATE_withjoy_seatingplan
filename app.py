@@ -3,6 +3,9 @@ import pandas as pd
 import io
 from datetime import datetime
 
+SAMPLE_CSV_URL = "https://raw.githubusercontent.com/neonewton/PRIVATE_withjoy_seatingplan/main/guest-list.csv"
+
+
 # -----------------------------
 # Helper: clean "No"
 # -----------------------------
@@ -235,7 +238,7 @@ def generate_seating_plan(df, table_size=10):
 
     # Stack all tables vertically
     seating_plan = pd.concat(rows, ignore_index=True)
-
+    seating_plan["Table"] = seating_plan["Table"].astype(str)
     # -------- Build Excel in memory --------
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
@@ -243,57 +246,79 @@ def generate_seating_plan(df, table_size=10):
         pending.to_excel(writer, sheet_name="Pending_RSVP", index=False)
         declined.to_excel(writer, sheet_name="Declined", index=False)
 
+
     return buffer.getvalue(), attending, seating_plan
 
 
 # -----------------------------
-# Streamlit Frontend
+# Streamlit Frontend (with session state)
 # -----------------------------
 st.title("💒 Wedding Seating Plan Generator")
 
+# Initialize session state variables
+if "df" not in st.session_state:
+    st.session_state.df = None
+
+if "sample_loaded" not in st.session_state:
+    st.session_state.sample_loaded = False
+
+# UPLOAD CSV
 uploaded = st.file_uploader("Upload your guest-list CSV file", type=["csv"])
 
 if uploaded:
-    df = pd.read_csv(uploaded)
+    st.session_state.df = pd.read_csv(uploaded)
+    st.session_state.sample_loaded = False
     st.success("CSV loaded successfully!")
 
-    if st.button("Generate Seating Plan"):
-        excel_bytes, attending_df, seating_plan_df = generate_seating_plan(df)
+# SAMPLE BUTTON
+if st.button("Use Sample Data"):
+    try:
+        st.session_state.df = pd.read_csv("guest-list.csv")   # local sample file
+        st.session_state.sample_loaded = True
+        st.success("Sample CSV loaded successfully!")
+    except Exception as e:
+        st.error(f"Failed to load sample CSV: {e}")
 
-        # --- TABLE SUMMARY ---
-        st.subheader("📋 Table Summary")
+# STOP IF NO DATA YET
+if st.session_state.df is None:
+    st.info("Upload a CSV or click 'Use Sample Data' to begin.")
+    st.stop()
 
-        summary = (
-            attending_df.groupby("table")
-            .agg(
-                guests=("full_name", "count"),
-                tag_group=("tag_group", lambda x: x.mode().iloc[0] if not x.mode().empty else "")
-            )
-            .reset_index()
-            .rename(columns={"table": "Table Number"})
-            .sort_values("Table Number")
+df = st.session_state.df  # for convenience
+
+# -----------------------------
+# Generate Seating Plan Button
+# -----------------------------
+if st.button("Generate Seating Plan"):
+    excel_bytes, attending_df, seating_plan_df = generate_seating_plan(df)
+
+    # --- TABLE SUMMARY ---
+    st.subheader("📋 Table Summary")
+
+    summary = (
+        attending_df.groupby("table")
+        .agg(
+            guests=("full_name", "count"),
+            tag_group=("tag_group",
+                       lambda x: x.mode().iloc[0] if not x.mode().empty else "")
         )
+        .reset_index()
+        .rename(columns={"table": "Table Number"})
+        .sort_values("Table Number")
+    )
 
-        st.dataframe(summary, use_container_width=True)
+    st.dataframe(summary, width="stretch")
 
-        # --- FULL SEATING PLAN PREVIEW ---
-        st.subheader("🪑 Full Seating Plan (Same as Excel)")
+    # --- FULL SEATING PREVIEW ---
+    st.subheader("🪑 Full Seating Plan (Same as Excel)")
+    st.dataframe(seating_plan_df, width="stretch", height=600)
 
-        st.dataframe(
-            seating_plan_df,
-            use_container_width=True,
-            height=600
-        )
-
-        # --- DOWNLOAD BUTTON ---
-        filename = f"Wedding_SeatingPlan_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
-
-        st.download_button(
-            label="📥 Download Seating Plan Excel",
-            data=excel_bytes,
-            file_name=filename,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-else:
-    st.info("Please upload your guest-list CSV to begin.")
+    # --- DOWNLOAD BUTTON ---
+    filename = f"Wedding_SeatingPlan_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    st.download_button(
+        label="📥 Download Seating Plan Excel",
+        data=excel_bytes,
+        file_name=filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    st.success("Seating Plan Excel is ready for download!")
