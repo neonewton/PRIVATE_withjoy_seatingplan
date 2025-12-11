@@ -194,7 +194,7 @@ def generate_seating_plan(df, table_size=10):
             tdf = pd.concat([tdf, pad_df], ignore_index=True)
 
         # Insert row numbers
-        tdf.insert(0, "Table", list(range(1, max_rows + 1)))
+        tdf.insert(0, "Table", list(range(1, len(tdf) + 1)))
         rows.append(tdf)
 
         # Separator
@@ -269,3 +269,4 @@ if st.button("Generate Seating Plan"):
         file_name=filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+    st.success("Seating Plan generated and ready for download!")
