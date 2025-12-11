@@ -54,14 +54,17 @@ def generate_seating_plan(df, table_size=10):
     declined = df[declined_mask].copy()
 
     # 4. Determine tag-group from Column C (full tags string)
-    #    Missing/empty tags -> 'Uncategorised'
-    attending["tag_group"] = (
-        attending["tags"]
-        .fillna("Uncategorised")
-        .astype(str)
-        .str.strip()
-    )
-    attending.loc[attending["tag_group"] == "", "tag_group"] = "Uncategorised"
+    # Guests with empty tags are moved to Pending_Tags (separate sheet)
+    attending["tag_group_raw"] = attending["tags"].astype(str).str.strip()
+
+    no_tag_mask = attending["tag_group_raw"].isin(["", "nan", "None"])
+
+    pending_tags = attending[no_tag_mask].copy()       # to be exported as separate sheet
+    attending = attending[~no_tag_mask].copy()         # only tagged guests continue
+
+    # Normal tag extraction for remaining guests
+    attending["tag_group"] = attending["tag_group_raw"]
+
 
     # 5. Table assignment per tag_group
     table_number_by_index = {}
@@ -245,6 +248,8 @@ def generate_seating_plan(df, table_size=10):
         seating_plan.to_excel(writer, sheet_name="SeatingPlan", index=False)
         pending.to_excel(writer, sheet_name="Pending_RSVP", index=False)
         declined.to_excel(writer, sheet_name="Declined", index=False)
+        pending_tags.to_excel(writer, sheet_name="Pending_Tags", index=False)
+
 
 
     return buffer.getvalue(), attending, seating_plan
