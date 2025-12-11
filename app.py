@@ -297,6 +297,10 @@ df = st.session_state.df  # for convenience
 if st.button("Generate Seating Plan"):
     excel_bytes, attending_df, seating_plan_df = generate_seating_plan(df)
 
+    # Count joyfully accepted guests
+    joyfully_accepted = len(attending_df)
+    st.metric(label="🎉 Joyfully Accepted", value=joyfully_accepted)
+
     # --- TABLE SUMMARY ---
     st.subheader("📋 Table Summary")
 
