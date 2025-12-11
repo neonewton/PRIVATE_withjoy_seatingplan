@@ -243,7 +243,7 @@ def generate_seating_plan(df, table_size=10):
         pending.to_excel(writer, sheet_name="Pending_RSVP", index=False)
         declined.to_excel(writer, sheet_name="Declined", index=False)
 
-    return buffer.getvalue(), attending
+    return buffer.getvalue(), attending, seating_plan
 
 
 # -----------------------------
@@ -258,7 +258,7 @@ if uploaded:
     st.success("CSV loaded successfully!")
 
     if st.button("Generate Seating Plan"):
-        excel_bytes, attending_df = generate_seating_plan(df)
+        excel_bytes, attending_df, seating_plan_df = generate_seating_plan(df)
 
         # --- TABLE SUMMARY ---
         st.subheader("📋 Table Summary")
@@ -276,6 +276,15 @@ if uploaded:
 
         st.dataframe(summary, use_container_width=True)
 
+        # --- FULL SEATING PLAN PREVIEW ---
+        st.subheader("🪑 Full Seating Plan (Same as Excel)")
+
+        st.dataframe(
+            seating_plan_df,
+            use_container_width=True,
+            height=600
+        )
+
         # --- DOWNLOAD BUTTON ---
         filename = f"Wedding_SeatingPlan_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
 
@@ -285,5 +294,6 @@ if uploaded:
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 else:
     st.info("Please upload your guest-list CSV to begin.")
