@@ -1,0 +1,10 @@
+# streamlit
+
+# selenium
+
+pandas
+numpy
+# openpyxl
+xlrd==1.2.0
+xlwt
+xlsxwriter
