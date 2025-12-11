@@ -246,7 +246,13 @@ if st.button("Generate Seating Plan"):
 
     excel_bytes, attending_df, seating_plan_df = generate_seating_plan(df)
 
-    st.metric("🎉 Joyfully Accepted", len(attending_df))
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("🎉 Joyfully Accepted", len(attending_df))
+
+    with col2:
+        st.metric("📦 Total Guests in CSV", len(df))
 
     st.subheader("📋 Table Summary")
     summary = (
