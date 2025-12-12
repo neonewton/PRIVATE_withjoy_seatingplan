@@ -3,8 +3,13 @@ import pandas as pd
 import io
 from datetime import datetime
 
-SAMPLE_CSV_URL = "https://raw.githubusercontent.com/neonewton/PRIVATE_withjoy_seatingplan/main/guest-list.csv"
+st.set_page_config(
+    page_title="💒 Wedding Seating Plan Generator",
+    page_icon="💍",
+    layout="wide"
+)
 
+SAMPLE_CSV_URL = "https://raw.githubusercontent.com/neonewton/PRIVATE_withjoy_seatingplan/main/guest-list.csv"
 
 # -----------------------------
 # Helper: clean "No"
